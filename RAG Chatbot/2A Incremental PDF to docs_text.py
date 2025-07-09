@@ -10,7 +10,7 @@ import os
 from pyspark.sql.functions import substring_index
 
 # Directory path
-directory_path = "/Volumes/llm/rag/pdf_vol"
+directory_path = "/Volumes/bluetab/rag/pdf_vol"
 
 # List files in directory
 file_paths = [file.path for file in dbutils.fs.ls(directory_path)]
@@ -28,10 +28,10 @@ import os
 import pdfplumber
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-pdf_volume_path = "/Volumes/llm/rag/pdf_vol"  # Specify the path to the PDF volume directory
+pdf_volume_path = "/Volumes/bluetab/rag/pdf_vol"  # Specify the path to the PDF volume directory
 
 # Get the list of already processed PDF files from the Delta table
-processed_files = spark.sql(f"SELECT DISTINCT file_name FROM llm.rag.docs_track").collect()
+processed_files = spark.sql(f"SELECT DISTINCT file_name FROM bluetab.rag.docs_track").collect()
 processed_files = set(row["file_name"] for row in processed_files)
 
 # Process only new PDF files
@@ -80,7 +80,7 @@ spark.udf.register("get_chunks_udf", get_chunks)
 
 # DBTITLE 1,Insert chunked data into docs_text table
 # MAGIC %sql
-# MAGIC insert into llm.rag.docs_text (text)
+# MAGIC insert into bluetab.rag.docs_text (text)
 # MAGIC select explode(get_chunks_udf('dummy')) as text;
 
 # COMMAND ----------
@@ -90,10 +90,10 @@ df.createOrReplaceTempView("temp_table")  # Create a temporary table from the Da
 
 # Insert only the rows that do not exist in the target table
 spark.sql("""
-    INSERT INTO llm.rag.docs_track
+    INSERT INTO bluetab.rag.docs_track
     SELECT * FROM temp_table
     WHERE NOT EXISTS (
-        SELECT 1 FROM llm.rag.docs_track
-        WHERE temp_table.file_name = llm.rag.docs_track.file_name
+        SELECT 1 FROM bluetab.rag.docs_track
+        WHERE temp_table.file_name = bluetab.rag.docs_track.file_name
     )
 """)
