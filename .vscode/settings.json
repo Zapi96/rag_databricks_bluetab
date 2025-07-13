@@ -1,0 +1,7 @@
+{
+    "yaml.schemas": {
+        "https://www.schemastore.org/databricks-asset-bundles.json": "file:///home/jorgemzapico/projects/personal/rag_databricks_bluetab/databricks.yml"
+    },
+    "jupyter.interactiveWindow.cellMarker.codeRegex": "^# COMMAND ----------|^# Databricks notebook source|^(#\\s*%%|#\\s*\\<codecell\\>|#\\s*In\\[\\d*?\\]|#\\s*In\\[ \\])",
+    "jupyter.interactiveWindow.cellMarker.default": "# COMMAND ----------"
+}

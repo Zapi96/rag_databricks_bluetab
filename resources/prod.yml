@@ -1,0 +1,67 @@
+# Production Environment Configuration
+# This file contains production-specific settings for the RAG pipeline
+
+variables:
+  environment: "prod"
+  catalog_name: "bluetab"
+  schema_name: "rag_prod"
+  
+  # Production-optimized model settings
+  embedding_model_base: "distilbert-base-uncased"
+  llm_base_model: "google/flan-t5-base"
+  
+  # Production processing settings
+  chunk_size: 1500    # Larger chunks for better context
+  chunk_overlap: 300
+  batch_size: 64      # Larger batches for efficiency
+  
+  # Production endpoint settings
+  workload_size: "Large"
+  scale_to_zero: "false"  # Keep endpoints warm in production
+  
+  # Volume paths for production
+  pdf_volume_path: "/Volumes/bluetab/rag_prod/pdf_vol"
+  
+  # MLflow settings
+  experiment_name: "/Shared/RAG_Databricks_Bluetab_Pipeline_Prod"
+
+workspace:
+  host: https://dbc-ad7d5e59-0280.cloud.databricks.com/
+  
+# Production-specific job configuration
+resources:
+  jobs:
+    rag_prod_job:
+      name: "RAG Pipeline - Production"
+      job_clusters:
+        - job_cluster_key: "prod_cluster"
+          new_cluster:
+            spark_version: "14.3.x-scala2.12"
+            node_type_id: "i3.2xlarge"  # Larger nodes for production
+            num_workers: 4               # Multiple workers for production
+            autoscale:
+              min_workers: 2
+              max_workers: 8
+            spark_conf:
+              "spark.sql.adaptive.enabled": "true"
+              "spark.sql.adaptive.coalescePartitions.enabled": "true"
+            custom_tags:
+              Environment: "production"
+              Project: "RAG_Databricks_Bluetab"
+              Cost_Center: "Operations"
+              
+      # Production-specific scheduling
+      schedule:
+        quartz_cron_expression: "0 0 2 * * ?"  # Run daily at 2 AM
+        timezone_id: "Europe/Madrid"
+        
+      # Production notifications
+      email_notifications:
+        on_failure: ["admin@bluetab.net"]
+        on_success: ["team@bluetab.net"]
+        no_alert_for_skipped_runs: true
+        
+      # Production timeouts and retries
+      timeout_seconds: 7200  # 2 hours max
+      max_concurrent_runs: 1
+      retry_on_timeout: true
