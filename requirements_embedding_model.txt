@@ -1,0 +1,14 @@
+# Requirements for Embedding Model Registration and Serving
+# Specific dependencies for the SimpleEmbeddingModel
+
+# Core ML and Data Science Libraries
+mlflow==2.10.1
+pandas==2.2.2
+numpy==1.26.4
+
+# PyTorch and Transformers for ML Models
+torch>=1.11.0
+transformers>=4.20.0
+
+# Additional utilities for model serving
+typing-extensions>=4.0.0

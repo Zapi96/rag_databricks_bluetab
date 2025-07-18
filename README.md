@@ -49,6 +49,31 @@ databricks.yml                         # 📦 Asset bundle configuration
 - Vector Search capability
 - Appropriate compute resources
 
+## 📦 Dependencies Management
+
+This project uses a sophisticated requirements management system:
+
+### 📋 Requirements Files Structure
+- **`requirements.txt`** - General dependencies for all notebooks
+- **`requirements_embedding_model.txt`** - Specific dependencies for embedding model registration
+- **`requirements_llm_model.txt`** - Specific dependencies for LLM model registration
+
+### 🔧 Installation
+```bash
+# For general development
+%pip install -r requirements.txt
+
+# Model-specific requirements are automatically used during model registration
+```
+
+### ✅ Benefits
+- **Reproducible deployments** with exact dependency versions
+- **Isolated dependencies** for different model types
+- **Optimized serving environments** with minimal dependencies
+- **Easy maintenance** and version control
+
+📖 **See [REQUIREMENTS_MANAGEMENT.md](REQUIREMENTS_MANAGEMENT.md) for detailed documentation**
+
 ### 1. Configuration Setup
 All notebooks now use the centralized configuration system. Start by running:
 

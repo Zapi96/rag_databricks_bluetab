@@ -1,5 +1,5 @@
 # Databricks notebook source
-# MAGIC %pip install dbtunnel[gradio] aiohttp
+# MAGIC %pip install -r ../requirements.txt
 # MAGIC
 
 # COMMAND ----------
