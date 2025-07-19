@@ -2,4 +2,3 @@ find-spark-home*
 spark-submit*
 load-spark-env.sh
 pyspark
-.venv/
