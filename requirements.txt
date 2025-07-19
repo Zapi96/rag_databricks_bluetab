@@ -11,13 +11,13 @@ torch>=1.11.0
 transformers>=4.20.0
 
 # LangChain Ecosystem
-langchain==0.1.5
-langchain-community>=0.0.20
-langchain-databricks>=0.0.1
-databricks-langchain>=0.0.1
+#langchain==0.1.5
+#langchain-community>=0.0.20
+#langchain-databricks>=0.0.1
+#databricks-langchain>=0.0.1
 
 # Databricks Specific Libraries
-databricks-vectorsearch==0.22
+#databricks-vectorsearch==0.22
 databricks-sdk==0.29.0
 mlflow[databricks]>=2.10.1
 
