@@ -2,6 +2,7 @@
 import mlflow
 import os
 from datetime import datetime
+from pyspark.sql import SparkSession
 
 def cleanup_active_runs():
     """Parar todas las runs de MLflow activas"""
@@ -168,19 +169,20 @@ def get_spark_session():
         SparkSession: La sesión de Spark activa o None si no está disponible
     """
     try:
-        # Intentar acceder a la variable spark global
-        if 'spark' in globals():
-            spark_session = globals()['spark']
-            if spark_session is not None:
-                # Verificar que la sesión esté activa probando una operación simple
-                try:
-                    # Probar una operación básica para verificar que funciona
-                    test_df = spark_session.range(1)
-                    test_df.count()
-                    return spark_session
-                except Exception as e:
-                    print(f"⚠️ Sesión de Spark encontrada pero no funcional: {e}")
-                    return None
+        # Usar SparkSession.getActiveSession() para obtener la sesión activa
+        
+        spark_session = SparkSession.getActiveSession()
+        
+        if spark_session is not None:
+            # Verificar que la sesión esté activa probando una operación simple
+            try:
+                # Probar una operación básica para verificar que funciona
+                test_df = spark_session.range(1)
+                test_df.count()
+                return spark_session
+            except Exception as e:
+                print(f"⚠️ Sesión de Spark encontrada pero no funcional: {e}")
+                return None
         return None
     except Exception as e:
         print(f"⚠️ Error obteniendo sesión de Spark: {e}")
