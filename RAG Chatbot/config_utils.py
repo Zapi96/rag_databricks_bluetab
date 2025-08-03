@@ -148,6 +148,11 @@ def get_current_run_info():
 def create_table_if_not_exists(table_name, schema_sql):
     """Create table if it doesn't exist"""
     try:
+        spark = get_spark_session()
+        if spark is None:
+            log_step("create_table", "failed", f"Spark session not available for {table_name}")
+            return False
+            
         spark.sql(f"CREATE TABLE IF NOT EXISTS {table_name} {schema_sql}")
         log_step("create_table", "success", f"Table {table_name} created/verified")
         return True
@@ -155,9 +160,202 @@ def create_table_if_not_exists(table_name, schema_sql):
         log_step("create_table", "failed", f"Error creating {table_name}: {e}")
         return False
 
+def get_spark_session():
+    """
+    Obtiene la sesión de Spark activa si está disponible
+    
+    Returns:
+        SparkSession: La sesión de Spark activa o None si no está disponible
+    """
+    try:
+        # Intentar acceder a la variable spark global
+        if 'spark' in globals():
+            spark_session = globals()['spark']
+            if spark_session is not None:
+                # Verificar que la sesión esté activa probando una operación simple
+                try:
+                    # Probar una operación básica para verificar que funciona
+                    test_df = spark_session.range(1)
+                    test_df.count()
+                    return spark_session
+                except Exception as e:
+                    print(f"⚠️ Sesión de Spark encontrada pero no funcional: {e}")
+                    return None
+        return None
+    except Exception as e:
+        print(f"⚠️ Error obteniendo sesión de Spark: {e}")
+        return None
+
+def get_spark_safe():
+    """
+    Obtiene la sesión de Spark de forma segura para usar en notebooks
+    
+    Returns:
+        SparkSession: La sesión de Spark activa
+        
+    Raises:
+        Exception: Si no hay sesión de Spark disponible
+    """
+    spark = get_spark_session()
+    if spark is None:
+        raise Exception("No hay sesión de Spark disponible. Verifica que el cluster esté activo y el notebook esté conectado.")
+    return spark
+
+def get_spark_or_none():
+    """
+    Obtiene la sesión de Spark de forma segura, retorna None si no está disponible
+    
+    Returns:
+        SparkSession or None: La sesión de Spark activa o None
+    """
+    return get_spark_session()
+
+def detect_spark_session():
+    """
+    Detecta si hay una sesión de Spark activa y retorna información sobre ella
+    
+    Returns:
+        dict: Información de la sesión de Spark o None si no está disponible
+    """
+    try:
+        # Intentar acceder a la variable spark global
+        if 'spark' in globals():
+            spark_session = globals()['spark']
+            if spark_session is not None:
+                return {
+                    "available": True,
+                    "session_id": spark_session._jsc.sc().applicationId(),
+                    "app_name": spark_session.conf.get("spark.app.name", "Unknown"),
+                    "master": spark_session.conf.get("spark.master", "Unknown"),
+                    "databricks_workspace": spark_session.conf.get("spark.databricks.workspaceUrl", "Unknown"),
+                    "cluster_id": spark_session.conf.get("spark.databricks.clusterUsageTags.clusterId", "Unknown"),
+                    "driver_node_type": spark_session.conf.get("spark.databricks.clusterUsageTags.driverNodeType", "Unknown"),
+                    "worker_node_type": spark_session.conf.get("spark.databricks.clusterUsageTags.workerNodeType", "Unknown"),
+                    "runtime_version": spark_session.conf.get("spark.databricks.clusterUsageTags.runtimeVersion", "Unknown")
+                }
+        return None
+    except Exception as e:
+        print(f"⚠️ Error detectando sesión de Spark: {e}")
+        return None
+
+def get_spark_info():
+    """
+    Obtiene información detallada de la sesión de Spark activa
+    
+    Returns:
+        dict: Información completa de Spark o mensaje de error
+    """
+    spark_info = detect_spark_session()
+    
+    if spark_info is None:
+        return {
+            "status": "no_session",
+            "message": "No hay sesión de Spark activa disponible",
+            "available": False
+        }
+    
+    try:
+        # Obtener información adicional si está disponible
+        spark = get_spark_session()
+        if spark is None:
+            return {
+                "status": "error",
+                "message": "No se pudo obtener sesión de Spark",
+                "available": False
+            }
+        
+        # Información del cluster
+        cluster_info = {
+            "num_executors": spark.conf.get("spark.executor.instances", "Unknown"),
+            "executor_memory": spark.conf.get("spark.executor.memory", "Unknown"),
+            "executor_cores": spark.conf.get("spark.executor.cores", "Unknown"),
+            "driver_memory": spark.conf.get("spark.driver.memory", "Unknown")
+        }
+        
+        # Combinar información
+        full_info = {
+            "status": "active",
+            "available": True,
+            "session_info": spark_info,
+            "cluster_info": cluster_info,
+            "message": "Sesión de Spark activa detectada"
+        }
+        
+        return full_info
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Error obteniendo información de Spark: {e}",
+            "available": False
+        }
+
+def print_spark_status():
+    """
+    Imprime el estado actual de la sesión de Spark de forma legible
+    """
+    spark_info = get_spark_info()
+    
+    print("🔍 Estado de la Sesión de Spark:")
+    print("=" * 50)
+    
+    if spark_info["available"]:
+        session = spark_info["session_info"]
+        cluster = spark_info["cluster_info"]
+        
+        print(f"✅ Estado: {spark_info['status']}")
+        print(f"📱 Session ID: {session['session_id']}")
+        print(f"🏷️ App Name: {session['app_name']}")
+        print(f"🌐 Workspace: {session['databricks_workspace']}")
+        print(f"🆔 Cluster ID: {session['cluster_id']}")
+        print(f"💻 Driver Node: {session['driver_node_type']}")
+        print(f"⚙️ Worker Node: {session['worker_node_type']}")
+        print(f"📦 Runtime: {session['runtime_version']}")
+        print(f"👥 Executors: {cluster['num_executors']}")
+        print(f"💾 Executor Memory: {cluster['executor_memory']}")
+        print(f"🔧 Executor Cores: {cluster['executor_cores']}")
+        print(f"🚀 Driver Memory: {cluster['driver_memory']}")
+    else:
+        print(f"❌ {spark_info['message']}")
+    
+    print("=" * 50)
+
+def validate_spark_session():
+    """
+    Valida que la sesión de Spark esté disponible y funcional
+    
+    Returns:
+        bool: True si la sesión está disponible y funcional
+    """
+    try:
+        spark_info = get_spark_info()
+        
+        if not spark_info["available"]:
+            print(f"❌ Sesión de Spark no disponible: {spark_info['message']}")
+            return False
+        
+        # Probar una operación simple para verificar que funciona
+        spark = get_spark_session()
+        if spark is None:
+            print("❌ No se pudo obtener sesión de Spark")
+            return False
+            
+        test_df = spark.range(1)
+        test_df.count()
+        
+        print("✅ Sesión de Spark validada y funcional")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error validando sesión de Spark: {e}")
+        return False
+
 def get_databricks_host():
     """Get Databricks workspace URL"""
     try:
+        spark = get_spark_session()
+        if spark is None:
+            return "https://dbc-ad7d5e59-0280.cloud.databricks.com/"
         return spark.conf.get("spark.databricks.workspaceUrl")
     except:
         return "https://dbc-ad7d5e59-0280.cloud.databricks.com/"
