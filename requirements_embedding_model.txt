@@ -2,13 +2,13 @@
 # Specific dependencies for the SimpleEmbeddingModel
 
 # Core ML and Data Science Libraries
-mlflow==2.10.1
-pandas==2.2.2
-numpy==1.26.4
+mlflow==3.1.4
+pandas==1.5.3
+numpy==1.23.5
 
 # PyTorch and Transformers for ML Models
-torch>=1.11.0
-transformers>=4.20.0
+torch==2.6.0
+transformers==4.54.1
 
-# Additional utilities for model serving
-typing-extensions>=4.0.0
+# Typing
+typing-extensions==4.12.0
