@@ -4,7 +4,7 @@
 # Core ML and Data Science Libraries
 mlflow==3.1.4
 pandas==1.5.3
-numpy==1.26.2
+numpy==1.23.5
 
 # PyTorch and Transformers for ML Models
 torch==2.6.0
@@ -13,9 +13,3 @@ transformers==4.54.1
 # Databricks Specific Libraries
 databricks-vectorsearch==0.40
 databricks-sdk==0.40.0
-
-# PDF Processing
-pdfplumber==0.11.7
-
-# Typing
-typing-extensions==4.12.0
