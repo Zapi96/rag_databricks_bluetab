@@ -1,0 +1,268 @@
+# RAG Pipeline Job Configuration
+# This file defines the complete RAG pipeline job with all tasks and their dependencies
+
+resources:
+  jobs:
+    rag_pipeline_job:
+      name: ${job_name}
+      timeout_seconds: ${timeout_seconds}
+      max_concurrent_runs: ${max_concurrent_runs}
+      
+      # Job cluster configuration
+      job_clusters:
+        - job_cluster_key: "rag_cluster"
+          new_cluster:
+            spark_version: ${spark_version}
+            node_type_id: ${node_type_id}
+            num_workers: ${num_workers}
+            autoscale:
+              min_workers: ${min_workers}
+              max_workers: ${max_workers}
+            spark_conf:
+              "spark.sql.adaptive.enabled": "true"
+              "spark.sql.adaptive.coalescePartitions.enabled": "true"
+              "spark.databricks.delta.preview.enabled": "true"
+            custom_tags:
+              Environment: ${environment}
+              Project: "RAG_Databricks_Bluetab"
+              Cost_Center: "Operations"
+      
+      # Production scheduling (only for prod environment)
+      schedule: ${schedule_cron ? {quartz_cron_expression: schedule_cron, timezone_id: timezone_id} : null}
+      
+      # Email notifications (only for prod environment)
+      email_notifications: ${email_notifications ? email_notifications : null}
+      
+      # Tasks definition
+      tasks:
+        # Task 00: Init Parent Run
+        - task_key: "00_init_parent_run"
+          notebook_task:
+            notebook_path: "/RAG Chatbot/00_init_parent_run"
+            base_parameters:
+              environment: ${environment}
+          job_cluster_key: "rag_cluster"
+          timeout_seconds: 300
+
+        # Task 01: Configuration and Utils
+        - task_key: "00_configuration_and_utils"
+          notebook_task:
+            notebook_path: "/RAG Chatbot/00 Configuration and Utils"
+            base_parameters:
+              environment: ${environment}
+              catalog_name: ${catalog_name}
+              schema_name: ${schema_name}
+              experiment_name: ${experiment_name}
+              parent_run_id: "{{tasks.00_init_parent_run.values.parent_run_id}}"
+          job_cluster_key: "rag_cluster"
+          timeout_seconds: 600
+          depends_on:
+            - task_key: "00_init_parent_run"
+          
+        # Task 02: Create needed tables
+        - task_key: "01_create_needed_tables"
+          notebook_task:
+            notebook_path: "/RAG Chatbot/01 Create needed tables"
+            base_parameters:
+              environment: ${environment}
+              catalog_name: ${catalog_name}
+              schema_name: ${schema_name}
+              docs_text_table: ${docs_text_table}
+              docs_track_table: ${docs_track_table}
+              experiment_name: ${experiment_name}
+              parent_run_id: "{{tasks.00_init_parent_run.values.parent_run_id}}"
+              current_run: "{{current_run}}"
+          job_cluster_key: "rag_cluster"
+          timeout_seconds: 900
+          depends_on:
+            - task_key: "00_init_parent_run"
+          
+        # Task 03: Incremental PDF to docs_text
+        - task_key: "02_incremental_pdf_to_docs"
+          notebook_task:
+            notebook_path: "/RAG Chatbot/02 Incremental PDF to docs_text"
+            base_parameters:
+              environment: ${environment}
+              catalog_name: ${catalog_name}
+              schema_name: ${schema_name}
+              docs_text_table: ${docs_text_table}
+              docs_track_table: ${docs_track_table}
+              pdf_volume_path: ${pdf_volume_path}
+              chunk_size: ${chunk_size}
+              chunk_overlap: ${chunk_overlap}
+              batch_size: ${batch_size}
+              experiment_name: ${experiment_name}
+              parent_run_id: "{{tasks.00_init_parent_run.values.parent_run_id}}"
+              current_run: "{{current_run}}"
+          job_cluster_key: "rag_cluster"
+          timeout_seconds: 1800
+          depends_on:
+            - task_key: "01_create_needed_tables"
+          
+        # Task 04: Register embedding model
+        - task_key: "03_register_embedding_model"
+          notebook_task:
+            notebook_path: "/RAG Chatbot/03 Register embedding model"
+            base_parameters:
+              environment: ${environment}
+              catalog_name: ${catalog_name}
+              schema_name: ${schema_name}
+              embedding_model_name: ${embedding_model_name}
+              embedding_model_base: ${embedding_model_base}
+              embedding_dim: ${embedding_dim}
+              max_length: ${max_length}
+              model_framework: ${model_framework}
+              experiment_name: ${experiment_name}
+              parent_run_id: "{{tasks.00_init_parent_run.values.parent_run_id}}"
+              current_run: "{{current_run}}"
+          job_cluster_key: "rag_cluster"
+          timeout_seconds: 1200
+          depends_on:
+            - task_key: "00_init_parent_run"
+          
+        # Task 05: Create embedding serving endpoint
+        - task_key: "04_create_embedding_endpoint"
+          notebook_task:
+            notebook_path: "/RAG Chatbot/04 Create Embbeding Serving Endpoint"
+            base_parameters:
+              environment: ${environment}
+              catalog_name: ${catalog_name}
+              schema_name: ${schema_name}
+              embedding_model_name: ${embedding_model_name}
+              embedding_endpoint: ${embedding_endpoint}
+              vector_search_endpoint: ${vector_search_endpoint}
+              workload_size: ${workload_size}
+              scale_to_zero: ${scale_to_zero}
+              model_version: ${model_version}
+              experiment_name: ${experiment_name}
+              parent_run_id: "{{tasks.00_init_parent_run.values.parent_run_id}}"
+              current_run: "{{current_run}}"
+          job_cluster_key: "rag_cluster"
+          timeout_seconds: 900
+          depends_on:
+            - task_key: "03_register_embedding_model"
+          
+        # Task 06: Register LLM model
+        - task_key: "05_register_llm_model"
+          notebook_task:
+            notebook_path: "/RAG Chatbot/05 Register LLM model"
+            base_parameters:
+              environment: ${environment}
+              catalog_name: ${catalog_name}
+              schema_name: ${schema_name}
+              llm_model_name: ${llm_model_name}
+              llm_base_model: ${llm_base_model}
+              llm_max_length: ${llm_max_length}
+              llm_temperature: ${llm_temperature}
+              llm_device: ${llm_device}
+              experiment_name: ${experiment_name}
+              parent_run_id: "{{tasks.00_init_parent_run.values.parent_run_id}}"
+              current_run: "{{current_run}}"
+          job_cluster_key: "rag_cluster"
+          timeout_seconds: 1200
+          depends_on:
+            - task_key: "00_init_parent_run"
+          
+        # Task 07: Create LLM serving endpoint
+        - task_key: "06_create_llm_endpoint"
+          notebook_task:
+            notebook_path: "/RAG Chatbot/06 Create LLM Serving Endpoint"
+            base_parameters:
+              environment: ${environment}
+              catalog_name: ${catalog_name}
+              schema_name: ${schema_name}
+              llm_model_name: ${llm_model_name}
+              llm_endpoint: ${llm_endpoint}
+              workload_size: ${workload_size}
+              scale_to_zero: ${scale_to_zero}
+              model_version: ${model_version}
+              experiment_name: ${experiment_name}
+              parent_run_id: "{{tasks.00_init_parent_run.values.parent_run_id}}"
+              current_run: "{{current_run}}"
+          job_cluster_key: "rag_cluster"
+          timeout_seconds: 900
+          depends_on:
+            - task_key: "05_register_llm_model"
+          
+        # Task 08: Create embeddings
+        - task_key: "07_create_embeddings"
+          notebook_task:
+            notebook_path: "/RAG Chatbot/07 Crear Embbedings"
+            base_parameters:
+              environment: ${environment}
+              catalog_name: ${catalog_name}
+              schema_name: ${schema_name}
+              docs_text_table: ${docs_text_table}
+              embedding_endpoint: ${embedding_endpoint}
+              experiment_name: ${experiment_name}
+              parent_run_id: "{{tasks.00_init_parent_run.values.parent_run_id}}"
+              current_run: "{{current_run}}"
+          job_cluster_key: "rag_cluster"
+          timeout_seconds: 2400
+          depends_on:
+            - task_key: "02_incremental_pdf_to_docs"
+            - task_key: "04_create_embedding_endpoint"
+          
+        # Task 09: Create index
+        - task_key: "08_create_index"
+          notebook_task:
+            notebook_path: "/RAG Chatbot/08 Create index"
+            base_parameters:
+              environment: ${environment}
+              catalog_name: ${catalog_name}
+              schema_name: ${schema_name}
+              index_name: ${index_name}
+              vector_search_endpoint: ${vector_search_endpoint}
+              experiment_name: ${experiment_name}
+              parent_run_id: "{{tasks.00_init_parent_run.values.parent_run_id}}"
+              current_run: "{{current_run}}"
+          job_cluster_key: "rag_cluster"
+          timeout_seconds: 900
+          depends_on:
+            - task_key: "07_create_embeddings"
+          
+        # Task 10: Chatbot
+        - task_key: "09_chatbot"
+          notebook_task:
+            notebook_path: "/RAG Chatbot/09 Chatbot"
+            base_parameters:
+              environment: ${environment}
+              catalog_name: ${catalog_name}
+              schema_name: ${schema_name}
+              index_name: ${index_name}
+              embedding_endpoint: ${embedding_endpoint}
+              llm_endpoint: ${llm_endpoint}
+              vector_search_endpoint: ${vector_search_endpoint}
+              experiment_name: ${experiment_name}
+              parent_run_id: "{{tasks.00_init_parent_run.values.parent_run_id}}"
+              current_run: "{{current_run}}"
+          job_cluster_key: "rag_cluster"
+          timeout_seconds: 600
+          depends_on:
+            - task_key: "08_create_index"
+            - task_key: "06_create_llm_endpoint"
+          
+        # Task 11: Create RAG serving endpoint (optional - for production)
+        - task_key: "10_create_rag_endpoint"
+          notebook_task:
+            notebook_path: "/RAG Chatbot/10 Create RAG Serving Endpoint"
+            base_parameters:
+              environment: ${environment}
+              catalog_name: ${catalog_name}
+              schema_name: ${schema_name}
+              rag_model_name: ${rag_model_name}
+              embedding_endpoint: ${embedding_endpoint}
+              llm_endpoint: ${llm_endpoint}
+              vector_search_endpoint: ${vector_search_endpoint}
+              index_name: ${index_name}
+              workload_size: ${workload_size}
+              scale_to_zero: ${scale_to_zero}
+              experiment_name: ${experiment_name}
+              parent_run_id: "{{tasks.00_init_parent_run.values.parent_run_id}}"
+              current_run: "{{current_run}}"
+          job_cluster_key: "rag_cluster"
+          timeout_seconds: 900
+          depends_on:
+            - task_key: "09_chatbot"
+          # Only run this task in production
+          condition: ${environment == "prod" ? "true" : "false"} 

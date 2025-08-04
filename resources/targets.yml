@@ -1,0 +1,137 @@
+# Databricks Asset Bundle Targets Configuration
+# This file defines the different environments (targets) for the RAG pipeline
+
+targets:
+  dev:
+    default: true
+    workspace:
+      host: https://dbc-ad7d5e59-0280.cloud.databricks.com/
+    variables:
+      # Core Configuration
+      environment: "dev"
+      catalog_name: "bluetab"
+      schema_name: "rag"
+      
+      # Model Configuration
+      embedding_model_name: "simple_embedding_model_bluetab"
+      llm_model_name: "flan_t5_base_model"
+      rag_model_name: "appliance_chatbot_model"
+      
+      # Model Parameters
+      embedding_model_base: "distilbert-base-uncased"
+      embedding_dim: "768"
+      max_length: "512"
+      model_framework: "transformers"
+      
+      llm_base_model: "google/flan-t5-small"  # Smaller model for dev
+      llm_max_length: "150"
+      llm_temperature: "0.1"
+      llm_device: "cpu"
+      
+      # Processing Configuration
+      chunk_size: "500"  # Smaller chunks for faster processing
+      chunk_overlap: "100"
+      batch_size: "16"   # Smaller batches for dev
+      
+      # Table Configuration
+      docs_text_table: "docs_text"
+      docs_track_table: "docs_track"
+      
+      # Volume Configuration
+      pdf_volume_path: "/Volumes/bluetab/rag/pdf_vol"
+      
+      # Endpoint Configuration
+      embedding_endpoint: "simple_embbeding"
+      llm_endpoint: "flan_t5_base_model"
+      vector_search_endpoint: "doc_vector_endpoint"
+      workload_size: "Small"
+      scale_to_zero: "true"
+      model_version: "latest"
+      
+      # Index Configuration
+      index_name: "bluetab.rag.docs_idx"
+      
+      # MLflow Configuration
+      experiment_name: "/Shared/RAG_Databricks_Bluetab_Pipeline_Dev"
+      
+      # Job Configuration
+      job_name: "RAG Pipeline - Development"
+      timeout_seconds: "3600"  # 1 hour for dev
+      max_concurrent_runs: "1"
+      
+      # Cluster Configuration
+      spark_version: "14.3.x-scala2.12"
+      node_type_id: "i3.xlarge"  # Smaller nodes for dev
+      num_workers: "2"
+      min_workers: "1"
+      max_workers: "4"
+
+  prod:
+    workspace:
+      host: https://dbc-ad7d5e59-0280.cloud.databricks.com/
+    variables:
+      # Core Configuration
+      environment: "prod"
+      catalog_name: "bluetab"
+      schema_name: "rag_prod"
+      
+      # Model Configuration
+      embedding_model_name: "simple_embedding_model_bluetab"
+      llm_model_name: "flan_t5_base_model"
+      rag_model_name: "appliance_chatbot_model"
+      
+      # Model Parameters
+      embedding_model_base: "distilbert-base-uncased"
+      embedding_dim: "768"
+      max_length: "512"
+      model_framework: "transformers"
+      
+      llm_base_model: "google/flan-t5-base"  # Full model for prod
+      llm_max_length: "150"
+      llm_temperature: "0.1"
+      llm_device: "cpu"
+      
+      # Processing Configuration
+      chunk_size: "1500"    # Larger chunks for better context
+      chunk_overlap: "300"
+      batch_size: "64"      # Larger batches for efficiency
+      
+      # Table Configuration
+      docs_text_table: "docs_text"
+      docs_track_table: "docs_track"
+      
+      # Volume Configuration
+      pdf_volume_path: "/Volumes/bluetab/rag_prod/pdf_vol"
+      
+      # Endpoint Configuration
+      embedding_endpoint: "simple_embbeding"
+      llm_endpoint: "flan_t5_base_model"
+      vector_search_endpoint: "doc_vector_endpoint"
+      workload_size: "Large"
+      scale_to_zero: "false"  # Keep endpoints warm in production
+      model_version: "latest"
+      
+      # Index Configuration
+      index_name: "bluetab.rag_prod.docs_idx"
+      
+      # MLflow Configuration
+      experiment_name: "/Shared/RAG_Databricks_Bluetab_Pipeline_Prod"
+      
+      # Job Configuration
+      job_name: "RAG Pipeline - Production"
+      timeout_seconds: "7200"  # 2 hours for prod
+      max_concurrent_runs: "1"
+      
+      # Cluster Configuration
+      spark_version: "14.3.x-scala2.12"
+      node_type_id: "i3.2xlarge"  # Larger nodes for production
+      num_workers: "4"
+      min_workers: "2"
+      max_workers: "8"
+      
+      # Production-specific settings
+      schedule_cron: "0 0 2 * * ?"  # Run daily at 2 AM
+      timezone_id: "Europe/Madrid"
+      email_notifications:
+        on_failure: ["admin@bluetab.net"]
+        on_success: ["team@bluetab.net"] 
